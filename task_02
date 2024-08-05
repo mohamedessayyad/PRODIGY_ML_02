@@ -1,0 +1,71 @@
+import pandas as pd
+
+# URL du dataset
+dataset_url = 'https://www.kaggle.com/datasets/vjchoudhary/customer-segmentation-tutorial-in-python'
+
+# Lecture des données depuis un fichier CSV
+data = pd.read_csv('Mall_Customers.csv')
+
+# Affichage des premières lignes du dataset
+data.head()
+
+# Vérification des valeurs manquantes
+print(data.isnull().sum())
+
+# Suppression de la colonne 'CustomerID'
+data = data.drop(columns=['CustomerID'])
+
+# Conversion des valeurs de la colonne 'Gender' en numériques
+data['Gender'] = data['Gender'].map({'Male': 0, 'Female': 1})
+
+# Normalisation des données
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+data_scaled = scaler.fit_transform(data)
+
+# Conversion en DataFrame avec les colonnes d'origine
+data_scaled = pd.DataFrame(data_scaled, columns=data.columns)
+
+# Importation des bibliothèques pour le clustering et la visualisation
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+
+# Détermination de l'inertie pour différentes valeurs de k
+inertia = []
+K = range(1, 11)
+for k in K:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(data_scaled)
+    inertia.append(kmeans.inertia_)
+
+# Affichage de la méthode du coude pour déterminer le nombre optimal de clusters
+plt.figure(figsize=(8, 4))
+plt.plot(K, inertia, 'bx-')
+plt.xlabel('Nombre de clusters')
+plt.ylabel('Inertie')
+plt.title('Méthode du coude pour le k optimal')
+plt.show()
+
+# Choix du nombre de clusters
+k = 5
+kmeans = KMeans(n_clusters=k, random_state=42)
+kmeans.fit(data_scaled)
+
+# Attribution des labels de cluster aux données
+data['Cluster'] = kmeans.labels_
+
+# Affichage des premières lignes des données avec les clusters
+data.head()
+
+# Visualisation des clusters
+import seaborn as sns
+
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=data, x='Annual Income (k$)', y='Spending Score (1-100)', hue='Cluster', palette='viridis')
+plt.title('Clusters de clients')
+plt.show()
+
+# Analyse des clusters en calculant la moyenne des caractéristiques
+cluster_analysis = data.groupby('Cluster').mean()
+print(cluster_analysis)
